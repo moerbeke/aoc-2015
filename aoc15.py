@@ -15,7 +15,8 @@ def solve_1(input_str):
     return find_best_recipe(ingredients)
 
 def solve_2(input_str):
-    return None
+    ingredients = parse_input(input_str)
+    return find_best_recipe(ingredients, 500)
 
 def parse_input(input_str):
     '''
@@ -35,26 +36,28 @@ def parse_input(input_str):
         ingredients.append(ingredient)
     return ingredients
 
-def find_best_recipe(ingredients):
+def find_best_recipe(ingredients, exact_calories=None):
     total_teaspoons = 100
     recipes = list()
-    compute_cookie(total_teaspoons, recipes, ingredients)
+    compute_cookie(total_teaspoons, recipes, ingredients, exact_calories)
     return max(recipes)
 
-def compute_cookie(total_teaspoons, recipes, ingredients, t=list()):
+def compute_cookie(total_teaspoons, recipes, ingredients, exact_calories, t=list()):
     assert(sum(t) <= total_teaspoons)
     if len(t) < len(ingredients) - 1:
         for i in range(0, total_teaspoons):
             if sum(t) + i > total_teaspoons:
                 continue
             t.append(i)
-            compute_cookie(total_teaspoons, recipes, ingredients, t)
+            compute_cookie(total_teaspoons, recipes, ingredients, exact_calories, t)
             del t[len(t)-1]
     elif len(t) == len(ingredients) - 1:
         j = total_teaspoons - sum(t)
         t.append(j)
         cookie = compute_value(ingredients, t)
-        if cookie > 0:
+        if not exact_calories is None:
+            calories = compute_calories(ingredients, t)
+        if cookie > 0 and (exact_calories is None or calories == exact_calories):
             recipes.append(cookie)
         del t[len(t)-1]
     else:
@@ -69,6 +72,11 @@ def compute_value(ingredients, t):
         if cookie == 0:
             break
     return cookie
+
+def compute_calories(ingredients, t):
+    p = properties[-1]
+    calories = sum([t[i] * ingredients[i].get_property(p) for i in range(len(t))])
+    return calories
 
 class Ingredient:
 
@@ -101,7 +109,9 @@ Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3
         self.tc_2 = [
                 (
 """
-""", None),
+Butterscotch: capacity -1, durability -2, flavor 6, texture 3, calories 8
+Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3
+""", 57600000),
                 ]
 
     def tearDown(self):
