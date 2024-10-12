@@ -65,7 +65,7 @@ def suite(TestClass):
 
 def run_test(day, daysolver):
     aoc_test_suite = unittest.TestSuite()
-    aoc_test_suite.addTest(unittest.makeSuite(daysolver.TestAoc))
+    aoc_test_suite.addTest(unittest.TestLoader().loadTestsFromTestCase(daysolver.TestAoc))
     runner = unittest.TextTestRunner()
     runner.run(aoc_test_suite)
 
