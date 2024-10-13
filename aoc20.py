@@ -9,18 +9,32 @@
 ########################################################################
 
 def solve_1(input_str):
-    n = parse_input(input_str) // 10
-    print(n*10)
-    i0 = n//2 + n%2
+    n_presents = parse_input(input_str)
+    n = n_presents // 10
     for i in range(1, n+1):
-        hi = compute_elves(i)
-        print(i, hi*10)
-        if hi >= n:
+        hi = compute_elves_1(i)
+        print(i, hi)
+        if hi >= n_presents:
             return i
     assert(False)
 
-def compute_elves(i):
-    return sum(divisors(i))
+def solve_2(input_str):
+    n_presents = parse_input(input_str)
+    i = 1
+    while True:
+        hi = compute_elves_2(i)
+        print(i, hi)
+        if hi >= n_presents:
+            return i
+        i += 1
+
+def compute_elves_1(i):
+    return 10 * sum(divisors(i))
+
+def compute_elves_2(i):
+    ds = divisors(i)
+    divisors_2 = reversed(sorted([d for d in ds if d*50 >= i]))
+    return 11 * sum(divisors_2)
 
 def divisors(n):
     ds = [1]
@@ -29,9 +43,6 @@ def divisors(n):
         ds.extend([n//i for i in ds])
     ds = list(set(ds))
     return ds
-
-def solve_2(input_str):
-    return None
 
 def parse_input(input_str):
     return int(input_str)
@@ -57,9 +68,6 @@ class TestAoc(unittest.TestCase):
                 (130, 8),
                 ]
         self.tc_2 = [
-                (
-"""
-""", None),
                 ]
 
     def tearDown(self):
