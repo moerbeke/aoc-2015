@@ -12,10 +12,13 @@ from math import inf
 
 g_atoms = None
 g_min_steps = inf
-g_medicine = None
+g_tested_molecules = None
 g_medicine_str = None
 g_medicine_str_len = 0
 g_initial_atom = 'e'
+g_reverse_replacements = None
+g_patterns = None
+g_n = 0
 
 def solve_1(input_str):
     replacements, medicine = parse_input(input_str)
@@ -24,35 +27,33 @@ def solve_1(input_str):
 
 def solve_2(input_str):
     global g_min_steps
+    global g_reverse_replacements
+    global g_patterns
     g_min_steps = inf
     replacements, medicine = parse_input(input_str)
     reverse_replacements_unsorted = dict()
-    print(replacements)
     for atom in replacements:
         for replacement in replacements[atom]:
             replacement_str = synthesise(replacement)
             reverse_replacements_unsorted[replacement_str] = atom
-    print(reverse_replacements_unsorted)
-    global g_reverse_replacements
     g_reverse_replacements = dict()
     for replacement_str in sorted(reverse_replacements_unsorted, key=len, reverse=True):
         g_reverse_replacements[replacement_str] = reverse_replacements_unsorted[replacement_str]
-    print(g_reverse_replacements)
-    global g_patterns
     g_patterns = list(g_reverse_replacements.keys())
-    make_medicine()
+    make_medicine(medicine)
     return g_min_steps
 
 def parse_input(input_str):
+    global g_atoms
+    global g_medicine_str
+    global g_medicine_str_len
     replacements_str, medicine_str = input_str.split('\n\n')
     replacements = dict()
     for line in replacements_str.strip().split('\n'):
         atom, replacement_str = line.split(' => ')
-        #replacement_components = analyse_atom(replacement)
         if atom not in replacements:
             replacements[atom] = list()
         replacements[atom].append(replacement_str)
-    global g_atoms
     g_atoms = replacements.keys()
     for atom in g_atoms:
         molecules_str = replacements[atom]
@@ -60,10 +61,6 @@ def parse_input(input_str):
         for molecule_str in molecules_str:
             replacements[atom].append(analyse(molecule_str))
     medicine = analyse(medicine_str.strip())
-    global g_medicine
-    g_medicine = medicine.copy()
-    global g_medicine_str
-    global g_medicine_str_len
     g_medicine_str = synthesise(medicine)
     g_medicine_str_len = len(g_medicine_str)
     return replacements, medicine
@@ -101,7 +98,16 @@ def compute_molecules(replacements, medicine):
             molecule[i] = atom
     return molecules
 
-def make_medicine():
+def make_medicine(medicine):
+    global g_n
+    global g_tested_molecules
+    g_n = 0
+    g_tested_molecules = list()
+    initial_step = 0
+    initial_molecule = medicine.copy()
+    iterate(initial_step, initial_molecule)
+
+def iterate(step, molecule):
     """Example of iteration - backwards strategy
 
 Replacements:
@@ -244,28 +250,8 @@ Medicine: HOHOHO
 ...
     """
     global g_n
-    g_n = 0
-    global g_tested_molecules
-    g_tested_molecules = list()
-    initial_molecule = g_medicine.copy()
-    initial_step = 0
-    iterate(initial_step, initial_molecule)
-
-def iterate(step, molecule):
-    """
-Start molecule: e
-Longest output length: 2
-Iteration order:
-- After a replacement, start at index 0
-- While at a given index, explore all replacements at index 
-- Move index
-#   Step  Input   Index  Pattern  Match  Action     Output
-    """
-    global g_n
     global g_min_steps
-    global g_tested_molecules
     molecule_str = synthesise(molecule)
-    #print("%s == %s ?" % (molecule_str, g_initial_atom))
     if molecule_str == g_initial_atom:
         g_min_steps = min(g_min_steps, step)
         #print("EUREKA!")
@@ -298,88 +284,10 @@ def find_patterns(molecule_str, index):
     return matching_patterns
 
 def replace_reverse_pattern(molecule_str, index, pattern_str, reverse_replacement):
-    #print("replace_reverse_pattern 0", molecule_str, index, pattern_str, reverse_replacement)
     next_molecule_str = molecule_str[:index]
-    #print("replace_reverse_pattern 1", index, next_molecule_str)
     next_molecule_str += reverse_replacement
-    #print("replace_reverse_pattern 2", next_molecule_str)
     next_molecule_str += molecule_str[index+len(pattern_str):]
-    #print("replace_reverse_pattern 3", next_molecule_str)
     return next_molecule_str
-
-def iterate_1(step, molecule, replacements, medicine):
-    """Example of iteration - forewards strategy, in depth first
-
-Replacements:
-e => H
-e => O
-H => HO
-H => OH
-O => HH
-
-Medicine
-HOH
-
-Start molecule: e
-
-Action      Step      Output
-----------------------------------
-1:e => H      1         H
-1:H => HO     2         HO
-1:H => HO     3         HOO
-1:H => HO     4         HOOO backtrack
-1:H <= HO     3         HOO
-1:H => OH     4         OHOO backtrack
-1:H <= OH     3         HOO
-2:O => HH     4         HHHO backtrack
-2:O <= HH     3         HOO
-3:O => HH     4         HOHH backtrack
-3:O <= HH     3         HOO
-1:H <= HO     2         HO
-2:O => HH     3         HHH
-1:H => HO     4         HOHH backtrack
-...
-1:e => O      1         O
-1:O => HH     2         HH
-1:H => HO     3         HOH EUREKA!!! backtrack
-1:H <= HO     2         HH
-...
-    """
-    global g_n
-    g_n += 1
-    global g_min_steps
-    #if step > g_min_steps:
-        #print("0 EXIT", '-'*100)
-        #return
-    molecule_str = synthesise(molecule)
-    #print("step", step, g_min_steps, molecule_str[:60]+"[...]"+molecule_str[-60:], len(molecule_str))
-    print(g_n, "step", step, "["+str(g_min_steps)+"]", len(molecule_str), molecule_str)
-    if molecule == medicine:
-        g_min_steps = min(g_min_steps, step)
-        print("EUREKA!")
-        return
-    if len(molecule_str) > len(g_medicine_str):
-        print("1 EXIT", '-'*100)
-        return
-    for atom_index in range(len(molecule)):
-        #print("atom_index?", atom_index)
-        #if molecule_str[:atom_index] != g_medicine_str[:atom_index]:
-            #print("2 EXIT", molecule_str[:atom_index], '-'*100)
-            #break
-        atom = molecule[atom_index]
-        if atom in replacements:
-            #print("index", atom_index, atom)
-            for replacement in replacements[atom]:
-                next_molecule = replace_atom(molecule, replacement, atom_index)
-                iterate_1(step+1, next_molecule, replacements, medicine)
-                next_molecule = replace_atom(next_molecule, molecule[atom_index], atom_index)
-                next_molecule[atom_index] = molecule[atom_index]
-
-def replace_atom(molecule, replacement, atom_index):
-    next_molecule = molecule[:atom_index]
-    next_molecule.extend(replacement)
-    next_molecule.extend(molecule[atom_index+1:])
-    return next_molecule
 
 ########################################################################
 # Tests
